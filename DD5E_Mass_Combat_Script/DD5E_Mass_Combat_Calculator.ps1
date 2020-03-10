@@ -1,8 +1,34 @@
 <#
-DD5E_Mass_CombaT_Script.ps1
-For reference, in this script "Dice" are die values without modifiers
-and "Rolls" are die values with modifiers included. I include color 
-callouts in all variables where it makes sense to for readability.
+DD5E_Mass_Combat_Script.ps1
+Published on 3/10/2020
+Author - Roy K. DeSimone
+#>
+
+<#
+Reference - 
+        "Dice" are rolled die values without modifiers
+        "Rolls" are die values with modifiers included.
+        Logically there are two teams - Red and Blue
+        Major victories are wins with a margin between 5 and 9 - they're noted but do not change any calculations
+        Overwhelming victories are wins with a margin of 10 or more - they increase the winner's victory multiplier
+        Victory multiplier -- big wins/losses have a major effect on the game.
+            The victory multiplier starts at 1. for each of the following events, it will double your score
+                -Crit failures are punished by increasing the winner's victory multiplier
+                -Crit successes are rewarded by increasing the winner's victory multiplier
+                -Overwhelming victories are rewarded by increasing the winner's victory multiplier
+            This means that a winner's score could end up with a x8 multiplier in the event of a crit fail vs a crit success, which would also be an ooverwhelming victory
+#>
+
+<#
+Instructions
+    Run script in powershell
+    Enter the number of sides on the dice you want to simulate (enter 20 for d20, 8 for d8, etc.)
+    Enter how many dice you'd like to roll (this is for EACH team, not for both)
+    Enter the modifiers for each team 
+    You will be prompted for a battle name - this will be appended to the end of the file name to help you keep organized.
+
+Files will be automatically output to the windows desktop folder of whichever account is running powershell. 
+This can be changed/modified by updating the output path variable in the top section of the script.
 #>
 
 #######################
@@ -16,6 +42,8 @@ callouts in all variables where it makes sense to for readability.
     [int32]$DieType = $null
     [int32]$OutputCount = 1
     [Int32]$RedMod = $null
+    [string]$OutputPath = "C:\Users\$Env:USERNAME\Desktop\" ## if this gets changed, make sure the path is enclosed in double quotes and ends with a backslash '\'
+    [Int32]$Score = $null
     [string]$TitleInfo = $null
     [Int32]$VictoryMultiplier = 1
 
@@ -42,7 +70,7 @@ callouts in all variables where it makes sense to for readability.
     [int32]$DieQuantity = Read-Host "How many dice?"
     [int32]$BlueMod = Read-Host "Enter Blue Modifier"
     [Int32]$RedMod = Read-Host "Enter Red Modifier"
-    [string]$TitleInfo = Read-Host "Enter battle name (for file name)"
+    [string]$TitleInfo = Read-Host "Enter battle name (will be appended to file name)"
 
 #################################################################
 ## Reinitialize die array with upper limit set to the die type ##
@@ -54,7 +82,7 @@ callouts in all variables where it makes sense to for readability.
 ## Roll Dice by piping dice to roll count array into get-random and ##
 ## retrieving <roll quantity> results with limits set by die type   ##
 ######################################################################
-    $DieRoller = $DieType+1
+    $DieRoller = $DieType+1 # the get-random cmdlet does NOT include the value passed in the max switch, so increase it by 1 and save as $DieRoller
     $BlueDice = $DiceToRoll | ForEach-Object {Get-Random -Minimum 1 -Maximum $DieRoller}
     $RedDice = $DiceToRoll | ForEach-Object {Get-Random -Minimum 1 -Maximum $DieRoller}
 
@@ -197,23 +225,23 @@ callouts in all variables where it makes sense to for readability.
 ################################################################
 ## Collect gathered data into custom object for export to csv ##
 ################################################################
-    $csv = For ([int32]$OutputCount = 0; $OutputCount -lt $DieQuantity; $OutputCount++) {
-        [pscustomobject] @{
-            'Battle Index' = $BattleIndex[$OutputCount]
-            'Blue Roll' = $BlueRolls[$OutputCount]
-            'Red Roll' = $RedRolls[$OutputCount]
-            'Winner' = $WinnerArray[$OutputCount]
-            'Margin' = $DifferenceArray[$OutputCount]
-            'Crits' = $CritArray[$OutputCount]
-            'Blue Score' = $BlueScore[$OutputCount]
-            'Red Score' = $RedScore[$OutputCount]
-            'Victory' = $VictoryArray[$OutputCount]
-        }
-    } 
+    $csv = For ([int32]$OutputCount = 0; $OutputCount -lt $DieQuantity; $OutputCount++) 
+        {
+            [pscustomobject] @{
+                                'Battle Index' = $BattleIndex[$OutputCount]
+                                'Blue Roll' = $BlueRolls[$OutputCount]
+                                'Red Roll' = $RedRolls[$OutputCount]
+                                'Winner' = $WinnerArray[$OutputCount]
+                                'Margin' = $DifferenceArray[$OutputCount]
+                                'Crits' = $CritArray[$OutputCount]
+                                'Blue Score' = $BlueScore[$OutputCount]
+                                'Red Score' = $RedScore[$OutputCount]
+                                'Victory' = $VictoryArray[$OutputCount]
+                                }
+        } 
 
 #########################
 ## Export to .csv file ##
 #########################
-    $OutputPath = "C:\Users\$Env:USERNAME\Desktop\"
     $csv | Export-Csv -Path "$OutputPath\Rolls for $TitleInfo.csv" -NoTypeInformation
     Write-Host "File saved to $OutputPath$TitleInfo.csv"
