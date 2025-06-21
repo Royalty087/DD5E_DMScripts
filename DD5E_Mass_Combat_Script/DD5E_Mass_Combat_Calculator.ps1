@@ -1,7 +1,7 @@
 <#
 DD5E_Mass_Combat_Script.ps1
 Published on 3/10/2020
-Author - Roy K. DeSimone
+Author - Royalty087
 #>
 
 <#
